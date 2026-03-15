@@ -34,7 +34,7 @@ cd backend
 python3 app.py
 
 # 3. Open the frontend
-# Open frontend/index.html in your browser (or visit http://localhost:5000)
+# Open frontend/index.html in your browser (or visit http://localhost:5001)
 ```
 
 The app runs entirely locally — no API keys, no internet connection required.

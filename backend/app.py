@@ -138,5 +138,5 @@ def seed_db():
 if __name__ == "__main__":
     init_db()
     seed_db()
-    print("Smart Request Board API running at http://localhost:5000")
-    app.run(debug=True, port=5000)
+    print("Smart Request Board API running at http://localhost:5001")
+    app.run(debug=True, port=5001)
