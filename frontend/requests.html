@@ -22,23 +22,17 @@
     <h2>All Requests</h2>
 
     <!-- Filters -->
-    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center;">
-      <select id="filter-category" style="padding:0.35rem 0.6rem;border:1px solid #cbd5e0;border-radius:6px;font-size:0.9rem;">
+    <div class="filter-bar">
+      <select id="filter-category" class="filter-select">
         <option value="">All categories</option>
-        <option value="electronics">Electronics</option>
-        <option value="office">Office</option>
-        <option value="appliances">Appliances</option>
-        <option value="furniture">Furniture</option>
-        <option value="cleaning">Cleaning</option>
-        <option value="other">Other</option>
       </select>
-      <select id="filter-priority" style="padding:0.35rem 0.6rem;border:1px solid #cbd5e0;border-radius:6px;font-size:0.9rem;">
+      <select id="filter-priority" class="filter-select">
         <option value="">All priorities</option>
         <option value="urgent">Urgent</option>
         <option value="normal">Normal</option>
         <option value="low">Low</option>
       </select>
-      <button id="refresh-btn" style="background:#edf2f7;color:#4a5568;font-size:0.85rem;padding:0.35rem 0.8rem;">Refresh</button>
+      <button id="refresh-btn" class="btn-secondary">Refresh</button>
     </div>
 
     <div class="table-wrap">
@@ -75,9 +69,7 @@
         <tbody id="match-body"></tbody>
       </table>
     </div>
-    <p style="margin-top:0.6rem;font-size:0.8rem;color:#718096;">
-      Products filtered to the request's category and budget.
-    </p>
+    <p class="hint">Products filtered to the request's category and budget.</p>
   </div>
 
 </main>
@@ -86,17 +78,36 @@
   const API = "http://localhost:5000";
 
   let allRequests = [];
-  let selectedRow = null;
+
+  function escapeHtml(str) {
+    return String(str ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
 
   async function loadRequests() {
     const tbody = document.getElementById("requests-body");
     try {
       const res = await fetch(`${API}/requests`);
       allRequests = await res.json();
+      populateCategoryFilter();
       renderTable();
     } catch {
-      tbody.innerHTML = `<tr><td colspan="6" class="empty">Could not load requests — is the backend running?<br><small>cd backend &amp;&amp; python app.py</small></td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="empty">Could not load requests — is the backend running?<br><small>cd backend &amp;&amp; python3 app.py</small></td></tr>`;
     }
+  }
+
+  function populateCategoryFilter() {
+    const select = document.getElementById("filter-category");
+    const current = select.value;
+    const categories = [...new Set(allRequests.map(r => r.category))].sort();
+    // Keep the "All categories" option, replace the rest
+    select.innerHTML = `<option value="">All categories</option>` +
+      categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+    if (current) select.value = current;
   }
 
   function renderTable() {
@@ -117,11 +128,11 @@
     tbody.innerHTML = filtered.map(r => `
       <tr class="clickable" data-id="${r.id}">
         <td>#${r.id}</td>
-        <td><strong>${r.item}</strong><br><span style="font-size:0.78rem;color:#718096;">${r.raw_input}</span></td>
-        <td>${r.category}</td>
+        <td><strong>${escapeHtml(r.item)}</strong><br><span class="raw-input">${escapeHtml(r.raw_input)}</span></td>
+        <td>${escapeHtml(r.category)}</td>
         <td>${r.budget_chf != null ? r.budget_chf : "—"}</td>
-        <td><span class="badge badge-${r.priority}">${r.priority}</span></td>
-        <td style="white-space:nowrap;font-size:0.82rem;">${formatDate(r.created_at)}</td>
+        <td><span class="badge badge-${escapeHtml(r.priority)}">${escapeHtml(r.priority)}</span></td>
+        <td class="date-cell">${formatDate(r.created_at)}</td>
       </tr>
     `).join("");
 
@@ -156,8 +167,8 @@
 
       matchBody.innerHTML = data.matches.map(p => `
         <tr>
-          <td>${p.name}</td>
-          <td>${p.category}</td>
+          <td>${escapeHtml(p.name)}</td>
+          <td>${escapeHtml(p.category)}</td>
           <td>CHF ${p.price_chf.toFixed(2)}</td>
         </tr>
       `).join("");

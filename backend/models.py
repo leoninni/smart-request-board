@@ -1,6 +1,6 @@
 """SQLAlchemy models for the Smart Request Board."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime
 from sqlalchemy.orm import DeclarativeBase, Session
 
@@ -22,7 +22,7 @@ class Request(Base):
     category = Column(String, nullable=False)
     budget_chf = Column(Float, nullable=True)
     priority = Column(String, nullable=False, default="normal")
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> dict:
         return {

@@ -2,7 +2,7 @@
 
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -41,7 +41,7 @@ def create_request():
             category=parsed["category"],
             budget_chf=parsed["budget_chf"],
             priority=parsed["priority"],
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
         session.add(req)
         session.commit()
@@ -84,11 +84,18 @@ def match_request():
         matches = [item for item in matches if item["price_chf"] <= budget]
     matches.sort(key=lambda x: x["price_chf"])
 
+    note = None
+    if category == "other":
+        note = "Category could not be determined — showing all catalog items under budget."
+        matches = [item for item in CATALOG if budget is None or item["price_chf"] <= budget]
+        matches.sort(key=lambda x: x["price_chf"])
+
     return jsonify({
         "request_id": request_id,
         "category": category,
         "budget_chf": budget,
         "matches": matches,
+        "note": note,
     })
 
 
@@ -118,7 +125,7 @@ def seed_db():
                 category=parsed["category"],
                 budget_chf=parsed["budget_chf"],
                 priority=parsed["priority"],
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
             ))
         session.commit()
         print(f"Seeded {len(SEED_REQUESTS)} requests.")

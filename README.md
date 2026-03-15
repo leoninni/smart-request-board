@@ -19,15 +19,19 @@ A rule-based parser extracts key fields (item, category, budget, priority) from 
 | Frontend | HTML + CSS + vanilla JS |
 | Version control | Git + GitHub |
 
+## Requirements
+
+- Python **3.10 or newer** (uses `X | Y` union type syntax)
+
 ## How to Run
 
 ```bash
 # 1. Install dependencies
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 
 # 2. Start the backend
 cd backend
-python app.py
+python3 app.py
 
 # 3. Open the frontend
 # Open frontend/index.html in your browser (or visit http://localhost:5000)

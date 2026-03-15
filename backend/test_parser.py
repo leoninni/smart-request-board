@@ -101,6 +101,35 @@ def test_full_parse_urgent_charger():
 
 
 # ---------------------------------------------------------------------------
+# Word-boundary false-positive regression tests
+# ---------------------------------------------------------------------------
+
+def test_no_false_positive_pen_in_open():
+    # "open" contains "pen" — should NOT match office category
+    result = extract_category("open the window")
+    assert result != "office", f"False positive: 'open' matched office via 'pen'"
+
+def test_no_false_positive_ram_in_program():
+    # "program" contains "ram" — should NOT match electronics
+    result = extract_category("write a program")
+    assert result != "electronics", f"False positive: 'program' matched electronics via 'ram'"
+
+def test_no_false_positive_usb_in_suburb():
+    result = extract_category("apartment in the suburb")
+    assert result != "electronics", f"False positive: 'suburb' matched electronics via 'usb'"
+
+def test_desk_is_furniture_not_office():
+    # "desk" was previously in both office and furniture; should resolve to furniture
+    assert extract_category("need a desk for my home office") == "furniture"
+
+def test_real_pen_still_matches_office():
+    assert extract_category("need a pen for signing") == "office"
+
+def test_real_ram_still_matches_electronics():
+    assert extract_category("upgrade the ram in my laptop") == "electronics"
+
+
+# ---------------------------------------------------------------------------
 # Runner (no pytest required)
 # ---------------------------------------------------------------------------
 
@@ -114,6 +143,13 @@ if __name__ == "__main__":
         test_category_office_paper, test_category_appliances_coffee, test_category_other,
         test_full_parse_headphones, test_full_parse_mouse,
         test_full_parse_no_budget_no_priority, test_full_parse_urgent_charger,
+        # word-boundary regression tests
+        test_no_false_positive_pen_in_open,
+        test_no_false_positive_ram_in_program,
+        test_no_false_positive_usb_in_suburb,
+        test_desk_is_furniture_not_office,
+        test_real_pen_still_matches_office,
+        test_real_ram_still_matches_electronics,
     ]
     passed = 0
     failed = 0

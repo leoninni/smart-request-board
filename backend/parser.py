@@ -21,7 +21,7 @@ CATEGORIES = {
     "office": [
         "paper", "printer paper", "stapler", "staples", "pen", "pens", "pencil", "notebook",
         "binder", "folder", "tape", "scissors", "ruler", "whiteboard", "marker", "post-it",
-        "sticky notes", "envelopes", "toner", "ink cartridge", "desk",
+        "sticky notes", "envelopes", "toner", "ink cartridge",
     ],
     "appliances": [
         "coffee machine", "coffee maker", "kettle", "microwave", "fridge", "refrigerator",
@@ -38,13 +38,7 @@ CATEGORIES = {
     ],
 }
 
-# Regex: matches numbers followed by an optional currency word
-BUDGET_PATTERN = re.compile(
-    r'\b(\d+(?:[.,]\d+)?)\s*(?:chf|bucks?|fr\.?|francs?|euros?|€|\$|dollars?|gbp|£)?\b',
-    re.IGNORECASE,
-)
-
-# Tighter pattern: only match when a currency word is present
+# Matches numbers with a currency word, or a budget keyword followed by a number
 BUDGET_WITH_CURRENCY = re.compile(
     r'\b(\d+(?:[.,]\d+)?)\s*(?:chf|bucks?|fr\.?|francs?|euros?|€|\$|dollars?|gbp|£)\b'
     r'|(?:budget|max|maximum|up to|under|around|about|approx\.?|≈)\s*(?:chf|€|\$|£)?\s*(\d+(?:[.,]\d+)?)',
@@ -76,10 +70,14 @@ def extract_priority(text: str) -> str:
 def extract_category(text: str) -> str:
     """Return the best-matching category name, or 'other'."""
     lower = text.lower()
-    # Count keyword hits per category and return the one with the most hits
+    # Count keyword hits per category and return the one with the most hits.
+    # Use word boundaries so "pen" doesn't match "open", "ram" doesn't match "frame", etc.
     scores: dict[str, int] = {}
     for cat, keywords in CATEGORIES.items():
-        score = sum(1 for kw in keywords if kw in lower)
+        score = sum(
+            1 for kw in keywords
+            if re.search(r'\b' + re.escape(kw) + r'\b', lower)
+        )
         if score > 0:
             scores[cat] = score
     if scores:
