@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Request Board — All Requests</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1>Smart Request Board</h1>
+  <nav>
+    <a href="index.html">Submit</a>
+    <a href="requests.html" class="active">All Requests</a>
+  </nav>
+</header>
+
+<main class="container">
+
+  <div class="card">
+    <h2>All Requests</h2>
+
+    <!-- Filters -->
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem;align-items:center;">
+      <select id="filter-category" style="padding:0.35rem 0.6rem;border:1px solid #cbd5e0;border-radius:6px;font-size:0.9rem;">
+        <option value="">All categories</option>
+        <option value="electronics">Electronics</option>
+        <option value="office">Office</option>
+        <option value="appliances">Appliances</option>
+        <option value="furniture">Furniture</option>
+        <option value="cleaning">Cleaning</option>
+        <option value="other">Other</option>
+      </select>
+      <select id="filter-priority" style="padding:0.35rem 0.6rem;border:1px solid #cbd5e0;border-radius:6px;font-size:0.9rem;">
+        <option value="">All priorities</option>
+        <option value="urgent">Urgent</option>
+        <option value="normal">Normal</option>
+        <option value="low">Low</option>
+      </select>
+      <button id="refresh-btn" style="background:#edf2f7;color:#4a5568;font-size:0.85rem;padding:0.35rem 0.8rem;">Refresh</button>
+    </div>
+
+    <div class="table-wrap">
+      <table id="requests-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Item</th>
+            <th>Category</th>
+            <th>Budget (CHF)</th>
+            <th>Priority</th>
+            <th>Submitted</th>
+          </tr>
+        </thead>
+        <tbody id="requests-body">
+          <tr><td colspan="6" class="empty">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Match panel: shown when a row is clicked -->
+  <div id="match-panel" class="card">
+    <h2 id="match-title">Matched Products</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Category</th>
+            <th>Price (CHF)</th>
+          </tr>
+        </thead>
+        <tbody id="match-body"></tbody>
+      </table>
+    </div>
+    <p style="margin-top:0.6rem;font-size:0.8rem;color:#718096;">
+      Products filtered to the request's category and budget.
+    </p>
+  </div>
+
+</main>
+
+<script>
+  const API = "http://localhost:5000";
+
+  let allRequests = [];
+  let selectedRow = null;
+
+  async function loadRequests() {
+    const tbody = document.getElementById("requests-body");
+    try {
+      const res = await fetch(`${API}/requests`);
+      allRequests = await res.json();
+      renderTable();
+    } catch {
+      tbody.innerHTML = `<tr><td colspan="6" class="empty">Could not load requests — is the backend running?<br><small>cd backend &amp;&amp; python app.py</small></td></tr>`;
+    }
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById("requests-body");
+    const catFilter  = document.getElementById("filter-category").value;
+    const prioFilter = document.getElementById("filter-priority").value;
+
+    const filtered = allRequests.filter(r =>
+      (!catFilter  || r.category === catFilter) &&
+      (!prioFilter || r.priority === prioFilter)
+    );
+
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="empty">No requests found.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(r => `
+      <tr class="clickable" data-id="${r.id}">
+        <td>#${r.id}</td>
+        <td><strong>${r.item}</strong><br><span style="font-size:0.78rem;color:#718096;">${r.raw_input}</span></td>
+        <td>${r.category}</td>
+        <td>${r.budget_chf != null ? r.budget_chf : "—"}</td>
+        <td><span class="badge badge-${r.priority}">${r.priority}</span></td>
+        <td style="white-space:nowrap;font-size:0.82rem;">${formatDate(r.created_at)}</td>
+      </tr>
+    `).join("");
+
+    // Row click → load matches
+    tbody.querySelectorAll("tr.clickable").forEach(tr => {
+      tr.addEventListener("click", () => loadMatches(Number(tr.dataset.id)));
+    });
+  }
+
+  async function loadMatches(requestId) {
+    const panel    = document.getElementById("match-panel");
+    const title    = document.getElementById("match-title");
+    const matchBody = document.getElementById("match-body");
+
+    panel.style.display = "block";
+    matchBody.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
+
+    // Scroll to panel
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    try {
+      const res  = await fetch(`${API}/match?request_id=${requestId}`);
+      const data = await res.json();
+
+      const req = allRequests.find(r => r.id === requestId);
+      title.textContent = `Matches for #${requestId}: ${req ? req.item : ""} (${data.category}${data.budget_chf != null ? `, ≤ CHF ${data.budget_chf}` : ""})`;
+
+      if (!data.matches || !data.matches.length) {
+        matchBody.innerHTML = `<tr><td colspan="3" class="empty">No catalog items match this request.</td></tr>`;
+        return;
+      }
+
+      matchBody.innerHTML = data.matches.map(p => `
+        <tr>
+          <td>${p.name}</td>
+          <td>${p.category}</td>
+          <td>CHF ${p.price_chf.toFixed(2)}</td>
+        </tr>
+      `).join("");
+    } catch {
+      matchBody.innerHTML = `<tr><td colspan="3" class="error-msg">Failed to load matches.</td></tr>`;
+    }
+  }
+
+  function formatDate(iso) {
+    if (!iso) return "—";
+    const d = new Date(iso + "Z"); // treat as UTC
+    return d.toLocaleDateString("en-CH", { day: "2-digit", month: "short", year: "numeric" });
+  }
+
+  document.getElementById("filter-category").addEventListener("change", renderTable);
+  document.getElementById("filter-priority").addEventListener("change", renderTable);
+  document.getElementById("refresh-btn").addEventListener("click", loadRequests);
+
+  loadRequests();
+</script>
+</body>
+</html>

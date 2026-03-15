@@ -1,0 +1,158 @@
+/* Smart Request Board — base styles */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f5f7fa;
+  color: #1a1a2e;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* ── Layout ─────────────────────────────────────── */
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+header {
+  background: #16213e;
+  color: #e2e8f0;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+header h1 { font-size: 1.25rem; font-weight: 600; }
+
+nav a {
+  color: #a0aec0;
+  text-decoration: none;
+  margin-left: 1.5rem;
+  font-size: 0.9rem;
+  transition: color 0.15s;
+}
+nav a:hover, nav a.active { color: #fff; }
+
+/* ── Cards ──────────────────────────────────────── */
+.card {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.card h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #2d3748;
+}
+
+/* ── Form ───────────────────────────────────────── */
+textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+textarea:focus { outline: none; border-color: #4299e1; }
+
+.hint {
+  font-size: 0.8rem;
+  color: #718096;
+  margin-top: 0.4rem;
+  margin-bottom: 0.8rem;
+}
+
+button {
+  background: #3182ce;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1.2rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+button:hover { background: #2b6cb0; }
+button:disabled { background: #a0aec0; cursor: not-allowed; }
+
+/* ── Parsed result block ────────────────────────── */
+#result-box {
+  display: none;
+  margin-top: 1.2rem;
+  border: 1px solid #bee3f8;
+  border-radius: 6px;
+  background: #ebf8ff;
+  padding: 1rem;
+}
+#result-box h3 { font-size: 0.85rem; font-weight: 600; color: #2b6cb0; margin-bottom: 0.6rem; }
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.6rem;
+}
+.field-item { background: #fff; border-radius: 4px; padding: 0.4rem 0.6rem; }
+.field-item .label { font-size: 0.72rem; color: #718096; text-transform: uppercase; letter-spacing: .04em; }
+.field-item .value { font-size: 0.95rem; font-weight: 500; color: #2d3748; }
+
+/* ── Tables ─────────────────────────────────────── */
+.table-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  background: #edf2f7;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: #4a5568;
+  border-bottom: 1px solid #e2e8f0;
+}
+td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #f0f4f8;
+  vertical-align: top;
+}
+tr:last-child td { border-bottom: none; }
+tr.clickable { cursor: pointer; transition: background 0.1s; }
+tr.clickable:hover { background: #f7fafc; }
+
+/* ── Priority badges ────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.badge-urgent  { background: #fed7d7; color: #c53030; }
+.badge-normal  { background: #e2e8f0; color: #4a5568; }
+.badge-low     { background: #c6f6d5; color: #276749; }
+
+/* ── Match panel ────────────────────────────────── */
+#match-panel {
+  display: none;
+  margin-top: 1.5rem;
+}
+
+/* ── Empty / error states ───────────────────────── */
+.empty { color: #718096; font-size: 0.9rem; text-align: center; padding: 2rem 0; }
+.error-msg { color: #c53030; font-size: 0.85rem; margin-top: 0.5rem; }

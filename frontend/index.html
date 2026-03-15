@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Request Board — Submit</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1>Smart Request Board</h1>
+  <nav>
+    <a href="index.html" class="active">Submit</a>
+    <a href="requests.html">All Requests</a>
+  </nav>
+</header>
+
+<main class="container">
+
+  <div class="card">
+    <h2>Submit a Purchase Request</h2>
+    <textarea id="input-text" placeholder="e.g. need headphones for calls, max 80 bucks, asap"></textarea>
+    <p class="hint">Plain English is fine. Include a budget (e.g. "50 chf", "80 bucks") and urgency ("asap", "low priority") for best results.</p>
+    <button id="submit-btn">Parse &amp; Submit</button>
+    <p id="error-msg" class="error-msg"></p>
+
+    <div id="result-box">
+      <h3>Parsed Result</h3>
+      <div class="field-grid" id="field-grid"></div>
+      <p style="margin-top:0.8rem;font-size:0.82rem;color:#2b6cb0;">
+        <a href="requests.html">View all requests →</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Quick examples -->
+  <div class="card">
+    <h2>Try an Example</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+      <button class="example-btn" data-text="need headphones for calls, max 80 bucks, asap">Headphones (urgent)</button>
+      <button class="example-btn" data-text="wireless mouse, budget 30 chf, low priority">Mouse (low prio)</button>
+      <button class="example-btn" data-text="URGENT laptop charger max 50 euros">Charger (URGENT)</button>
+      <button class="example-btn" data-text="printer paper a4, about 25 francs, whenever">Paper (whenever)</button>
+      <button class="example-btn" data-text="coffee machine for the kitchen">Coffee machine</button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const API = "http://localhost:5000";
+
+  const inputEl   = document.getElementById("input-text");
+  const submitBtn = document.getElementById("submit-btn");
+  const resultBox = document.getElementById("result-box");
+  const fieldGrid = document.getElementById("field-grid");
+  const errorMsg  = document.getElementById("error-msg");
+
+  // Example buttons
+  document.querySelectorAll(".example-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      inputEl.value = btn.dataset.text;
+      inputEl.focus();
+    });
+  });
+
+  submitBtn.addEventListener("click", async () => {
+    const text = inputEl.value.trim();
+    if (!text) { errorMsg.textContent = "Please enter a request."; return; }
+    errorMsg.textContent = "";
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting…";
+
+    try {
+      const res = await fetch(`${API}/requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json();
+      if (!res.ok) { throw new Error(data.error || "Server error"); }
+      showResult(data);
+    } catch (err) {
+      errorMsg.textContent = `Error: ${err.message}. Is the backend running? (cd backend && python app.py)`;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Parse & Submit";
+    }
+  });
+
+  function showResult(data) {
+    const fields = [
+      { label: "Item",     value: data.item || "—" },
+      { label: "Category", value: data.category || "—" },
+      { label: "Budget",   value: data.budget_chf != null ? `CHF ${data.budget_chf}` : "not specified" },
+      { label: "Priority", value: data.priority || "normal" },
+      { label: "ID",       value: `#${data.id}` },
+    ];
+    fieldGrid.innerHTML = fields.map(f => `
+      <div class="field-item">
+        <div class="label">${f.label}</div>
+        <div class="value">${f.value}</div>
+      </div>
+    `).join("");
+    resultBox.style.display = "block";
+  }
+</script>
+</body>
+</html>
