@@ -3,46 +3,87 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Smart Request Board — Submit</title>
+  <title>Smart Request Board</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<header>
-  <h1>Smart Request Board</h1>
-  <nav>
-    <a href="index.html" class="active">Submit</a>
+<!-- Navigation -->
+<nav class="nav">
+  <a href="index.html" class="nav-brand">
+    <div class="nav-logo-mark">SR</div>
+    <span class="nav-brand-name">Smart Request Board</span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html" class="active">New Request</a>
     <a href="requests.html">All Requests</a>
-  </nav>
-</header>
+  </div>
+</nav>
 
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-eyebrow">
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><circle cx="5" cy="5" r="5"/></svg>
+    Procurement Intelligence
+  </div>
+  <h1>Turn messy requests into<br><span>structured data</span> — instantly</h1>
+  <p class="hero-sub">Type any purchase request in plain English. Our parser extracts item, category, budget and priority automatically.</p>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hero-stat-value">~2s</div>
+      <div class="hero-stat-label">Parse time</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-value">30+</div>
+      <div class="hero-stat-label">Catalog items</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-value">5</div>
+      <div class="hero-stat-label">Categories</div>
+    </div>
+  </div>
+</section>
+
+<!-- Main content -->
 <main class="container">
 
+  <!-- Submit form -->
   <div class="card">
-    <h2>Submit a Purchase Request</h2>
-    <textarea id="input-text" placeholder="e.g. need headphones for calls, max 80 bucks, asap"></textarea>
-    <p class="hint">Plain English is fine. Include a budget (e.g. "50 chf", "80 bucks") and urgency ("asap", "low priority") for best results.</p>
-    <button id="submit-btn">Parse &amp; Submit</button>
-    <p id="error-msg" class="error-msg"></p>
+    <div class="card-title">Submit a Purchase Request</div>
+    <div class="card-subtitle">Plain English works best. No forms to fill — just describe what you need.</div>
 
+    <textarea id="input-text" placeholder="e.g. need headphones for video calls, max 80 bucks, asap"></textarea>
+    <p class="hint">Tip: mention a budget ("50 chf", "80 bucks") and urgency ("asap", "low priority") for the most accurate results.</p>
+
+    <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+      <button class="btn-primary" id="submit-btn">
+        Parse &amp; Submit
+      </button>
+      <p id="error-msg" class="error-msg"></p>
+    </div>
+
+    <!-- Result -->
     <div id="result-box">
-      <h3>Parsed Result</h3>
+      <div class="result-header">
+        <div class="result-check">&#10003;</div>
+        <span class="result-header-text">Request parsed and saved</span>
+      </div>
       <div class="field-grid" id="field-grid"></div>
-      <p style="margin-top:0.8rem;font-size:0.82rem;color:#2b6cb0;">
-        <a href="requests.html">View all requests →</a>
-      </p>
+      <a href="requests.html" class="result-link">
+        View all requests →
+      </a>
     </div>
   </div>
 
-  <!-- Quick examples -->
+  <!-- Examples -->
   <div class="card">
-    <h2>Try an Example</h2>
-    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
-      <button class="example-btn" data-text="need headphones for calls, max 80 bucks, asap">Headphones (urgent)</button>
-      <button class="example-btn" data-text="wireless mouse, budget 30 chf, low priority">Mouse (low prio)</button>
-      <button class="example-btn" data-text="URGENT laptop charger max 50 euros">Charger (URGENT)</button>
-      <button class="example-btn" data-text="printer paper a4, about 25 francs, whenever">Paper (whenever)</button>
-      <button class="example-btn" data-text="coffee machine for the kitchen">Coffee machine</button>
+    <div class="examples-label">Try an example</div>
+    <div class="pills">
+      <button class="btn-pill" data-text="need headphones for calls, max 80 bucks, asap">🎧 Headphones (urgent)</button>
+      <button class="btn-pill" data-text="wireless mouse, budget 30 chf, low priority">🖱 Mouse (low prio)</button>
+      <button class="btn-pill" data-text="URGENT laptop charger max 50 euros">⚡ Charger (URGENT)</button>
+      <button class="btn-pill" data-text="printer paper a4, about 25 francs, whenever">📄 Paper (whenever)</button>
+      <button class="btn-pill" data-text="coffee machine for the kitchen">☕ Coffee machine</button>
     </div>
   </div>
 
@@ -57,11 +98,12 @@
   const fieldGrid = document.getElementById("field-grid");
   const errorMsg  = document.getElementById("error-msg");
 
-  // Example buttons
-  document.querySelectorAll(".example-btn").forEach(btn => {
+  // Example pills
+  document.querySelectorAll(".btn-pill").forEach(btn => {
     btn.addEventListener("click", () => {
       inputEl.value = btn.dataset.text;
       inputEl.focus();
+      resultBox.style.display = "none";
     });
   });
 
@@ -79,10 +121,10 @@
         body: JSON.stringify({ text }),
       });
       const data = await res.json();
-      if (!res.ok) { throw new Error(data.error || "Server error"); }
+      if (!res.ok) throw new Error(data.error || "Server error");
       showResult(data);
     } catch (err) {
-      errorMsg.textContent = `Error: ${err.message}. Is the backend running? (cd backend && python app.py)`;
+      errorMsg.textContent = `Error: ${err.message}. Is the backend running? (cd backend && python3 app.py)`;
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = "Parse & Submit";
@@ -90,6 +132,7 @@
   });
 
   function showResult(data) {
+    const priorityColors = { urgent: "#b91c1c", normal: "#64748b", low: "#065f46" };
     const fields = [
       { label: "Item",     value: data.item || "—" },
       { label: "Category", value: data.category || "—" },
@@ -100,11 +143,16 @@
     fieldGrid.innerHTML = fields.map(f => `
       <div class="field-item">
         <div class="label">${f.label}</div>
-        <div class="value">${f.value}</div>
+        <div class="value" style="${f.label === 'Priority' ? `color:${priorityColors[f.value] || '#64748b'}` : ''}">${f.value}</div>
       </div>
     `).join("");
     resultBox.style.display = "block";
   }
+
+  // Allow submit on Ctrl/Cmd + Enter
+  inputEl.addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") submitBtn.click();
+  });
 </script>
 </body>
 </html>

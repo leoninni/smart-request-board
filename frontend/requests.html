@@ -3,25 +3,56 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Smart Request Board — All Requests</title>
+  <title>All Requests — Smart Request Board</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<header>
-  <h1>Smart Request Board</h1>
-  <nav>
-    <a href="index.html">Submit</a>
+<!-- Navigation -->
+<nav class="nav">
+  <a href="index.html" class="nav-brand">
+    <div class="nav-logo-mark">SR</div>
+    <span class="nav-brand-name">Smart Request Board</span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html">New Request</a>
     <a href="requests.html" class="active">All Requests</a>
-  </nav>
-</header>
+  </div>
+</nav>
 
-<main class="container">
+<!-- Page header -->
+<div class="page-header">
+  <h1>Purchase Requests</h1>
+  <p>Click any row to see matched catalog products.</p>
+</div>
 
-  <div class="card">
-    <h2>All Requests</h2>
+<!-- Main content -->
+<main class="container-wide">
 
-    <!-- Filters -->
+  <!-- Stats -->
+  <div class="stats-row" id="stats-row">
+    <div class="stat-card">
+      <div class="stat-card-label">Total</div>
+      <div class="stat-card-value" id="stat-total">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-label">Urgent</div>
+      <div class="stat-card-value urgent" id="stat-urgent">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-label">With Budget</div>
+      <div class="stat-card-value" id="stat-budget">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-label">Low Priority</div>
+      <div class="stat-card-value low" id="stat-low">—</div>
+    </div>
+  </div>
+
+  <!-- Request table -->
+  <div class="card" style="padding: 1.5rem;">
+
+    <!-- Filter bar -->
     <div class="filter-bar">
       <select id="filter-category" class="filter-select">
         <option value="">All categories</option>
@@ -32,31 +63,47 @@
         <option value="normal">Normal</option>
         <option value="low">Low</option>
       </select>
-      <button id="refresh-btn" class="btn-secondary">Refresh</button>
+      <button id="refresh-btn" class="btn-secondary">↻ Refresh</button>
     </div>
 
     <div class="table-wrap">
-      <table id="requests-table">
+      <table>
         <thead>
           <tr>
             <th>#</th>
-            <th>Item</th>
+            <th>Item &amp; Request</th>
             <th>Category</th>
-            <th>Budget (CHF)</th>
+            <th>Budget</th>
             <th>Priority</th>
             <th>Submitted</th>
           </tr>
         </thead>
         <tbody id="requests-body">
-          <tr><td colspan="6" class="empty">Loading…</td></tr>
+          <tr>
+            <td colspan="6">
+              <div class="empty">
+                <div class="empty-icon">⏳</div>
+                <p>Loading requests…</p>
+              </div>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- Match panel: shown when a row is clicked -->
-  <div id="match-panel" class="card">
-    <h2 id="match-title">Matched Products</h2>
+  <!-- Match panel -->
+  <div id="match-panel" class="card" style="padding: 1.5rem;">
+    <div class="match-panel-header">
+      <div>
+        <div class="match-panel-title" id="match-title">Matched Products</div>
+        <div class="match-panel-meta" id="match-meta"></div>
+      </div>
+      <span class="match-count-badge" id="match-count">0</span>
+    </div>
+
+    <div id="match-note"></div>
+
     <div class="table-wrap">
       <table>
         <thead>
@@ -66,10 +113,11 @@
             <th>Price (CHF)</th>
           </tr>
         </thead>
-        <tbody id="match-body"></tbody>
+        <tbody id="match-body">
+          <tr><td colspan="3"><div class="empty"><p>Select a request above.</p></div></td></tr>
+        </tbody>
       </table>
     </div>
-    <p class="hint">Products filtered to the request's category and budget.</p>
   </div>
 
 </main>
@@ -78,6 +126,7 @@
   const API = "http://localhost:5001";
 
   let allRequests = [];
+  let selectedId = null;
 
   function escapeHtml(str) {
     return String(str ?? "")
@@ -88,25 +137,41 @@
       .replace(/'/g, "&#39;");
   }
 
+  // ── Load & render ────────────────────────────────
+
   async function loadRequests() {
     const tbody = document.getElementById("requests-body");
     try {
       const res = await fetch(`${API}/requests`);
       allRequests = await res.json();
+      updateStats();
       populateCategoryFilter();
       renderTable();
     } catch {
-      tbody.innerHTML = `<tr><td colspan="6" class="empty">Could not load requests — is the backend running?<br><small>cd backend &amp;&amp; python3 app.py</small></td></tr>`;
+      tbody.innerHTML = `
+        <tr><td colspan="6">
+          <div class="empty">
+            <div class="empty-icon">⚠️</div>
+            <p>Could not connect to backend.<br>
+            <small style="color:#94a3b8">cd backend &amp;&amp; python3 app.py</small></p>
+          </div>
+        </td></tr>`;
     }
+  }
+
+  function updateStats() {
+    document.getElementById("stat-total").textContent  = allRequests.length;
+    document.getElementById("stat-urgent").textContent = allRequests.filter(r => r.priority === "urgent").length;
+    document.getElementById("stat-budget").textContent = allRequests.filter(r => r.budget_chf != null).length;
+    document.getElementById("stat-low").textContent    = allRequests.filter(r => r.priority === "low").length;
   }
 
   function populateCategoryFilter() {
     const select = document.getElementById("filter-category");
     const current = select.value;
-    const categories = [...new Set(allRequests.map(r => r.category))].sort();
-    // Keep the "All categories" option, replace the rest
+    const cats = [...new Set(allRequests.map(r => r.category))].sort();
     select.innerHTML = `<option value="">All categories</option>` +
-      categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+      cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
     if (current) select.value = current;
   }
 
@@ -121,36 +186,51 @@
     );
 
     if (!filtered.length) {
-      tbody.innerHTML = `<tr><td colspan="6" class="empty">No requests found.</td></tr>`;
+      tbody.innerHTML = `
+        <tr><td colspan="6">
+          <div class="empty">
+            <div class="empty-icon">🔍</div>
+            <p>No requests match the current filters.</p>
+          </div>
+        </td></tr>`;
       return;
     }
 
     tbody.innerHTML = filtered.map(r => `
-      <tr class="clickable" data-id="${r.id}">
-        <td>#${r.id}</td>
-        <td><strong>${escapeHtml(r.item)}</strong><br><span class="raw-input">${escapeHtml(r.raw_input)}</span></td>
-        <td>${escapeHtml(r.category)}</td>
-        <td>${r.budget_chf != null ? r.budget_chf : "—"}</td>
+      <tr class="clickable${r.id === selectedId ? ' selected' : ''}" data-id="${r.id}">
+        <td style="color:var(--text-muted);font-size:0.8rem;">#${r.id}</td>
+        <td>
+          <div class="item-name">${escapeHtml(r.item)}</div>
+          <div class="raw-input">${escapeHtml(r.raw_input)}</div>
+        </td>
+        <td><span class="category-chip">${escapeHtml(r.category)}</span></td>
+        <td style="font-weight:500;">${r.budget_chf != null ? `CHF ${r.budget_chf}` : '<span style="color:var(--text-light)">—</span>'}</td>
         <td><span class="badge badge-${escapeHtml(r.priority)}">${escapeHtml(r.priority)}</span></td>
         <td class="date-cell">${formatDate(r.created_at)}</td>
       </tr>
     `).join("");
 
-    // Row click → load matches
     tbody.querySelectorAll("tr.clickable").forEach(tr => {
       tr.addEventListener("click", () => loadMatches(Number(tr.dataset.id)));
     });
   }
 
+  // ── Match panel ──────────────────────────────────
+
   async function loadMatches(requestId) {
-    const panel    = document.getElementById("match-panel");
-    const title    = document.getElementById("match-title");
+    selectedId = requestId;
+    renderTable(); // re-render to apply .selected class
+
+    const panel     = document.getElementById("match-panel");
+    const title     = document.getElementById("match-title");
+    const meta      = document.getElementById("match-meta");
+    const countBadge = document.getElementById("match-count");
     const matchBody = document.getElementById("match-body");
+    const noteEl    = document.getElementById("match-note");
 
     panel.style.display = "block";
-    matchBody.innerHTML = "<tr><td colspan='3'>Loading…</td></tr>";
-
-    // Scroll to panel
+    matchBody.innerHTML = `<tr><td colspan="3"><div class="empty"><p>Loading…</p></div></td></tr>`;
+    noteEl.innerHTML = "";
     panel.scrollIntoView({ behavior: "smooth", block: "start" });
 
     try {
@@ -158,28 +238,53 @@
       const data = await res.json();
 
       const req = allRequests.find(r => r.id === requestId);
-      title.textContent = `Matches for #${requestId}: ${req ? req.item : ""} (${data.category}${data.budget_chf != null ? `, ≤ CHF ${data.budget_chf}` : ""})`;
+      title.textContent = req ? `Matches for "${req.item}"` : `Matches for #${requestId}`;
+      meta.textContent  = `Category: ${data.category}${data.budget_chf != null ? ` · Budget: ≤ CHF ${data.budget_chf}` : " · No budget set"}`;
+      countBadge.textContent = data.matches ? data.matches.length : 0;
+
+      if (data.note) {
+        noteEl.innerHTML = `
+          <div class="note-banner">
+            <span>ℹ️</span>
+            <span>${escapeHtml(data.note)}</span>
+          </div>`;
+      }
 
       if (!data.matches || !data.matches.length) {
-        matchBody.innerHTML = `<tr><td colspan="3" class="empty">No catalog items match this request.</td></tr>`;
+        matchBody.innerHTML = `
+          <tr><td colspan="3">
+            <div class="empty">
+              <div class="empty-icon">📭</div>
+              <p>No catalog items match this request.</p>
+            </div>
+          </td></tr>`;
         return;
       }
 
-      matchBody.innerHTML = data.matches.map(p => `
+      matchBody.innerHTML = data.matches.map((p, i) => `
         <tr>
-          <td>${escapeHtml(p.name)}</td>
-          <td>${escapeHtml(p.category)}</td>
-          <td>CHF ${p.price_chf.toFixed(2)}</td>
+          <td>
+            <div style="font-weight:500;">${escapeHtml(p.name)}</div>
+            ${i === 0 ? '<div style="font-size:0.72rem;color:var(--green);font-weight:600;margin-top:0.1rem;">Best match</div>' : ''}
+          </td>
+          <td><span class="category-chip">${escapeHtml(p.category)}</span></td>
+          <td>
+            <span class="product-price ${data.budget_chf != null && p.price_chf <= data.budget_chf ? 'price-under-budget' : ''}">
+              CHF ${p.price_chf.toFixed(2)}
+            </span>
+          </td>
         </tr>
       `).join("");
     } catch {
-      matchBody.innerHTML = `<tr><td colspan="3" class="error-msg">Failed to load matches.</td></tr>`;
+      matchBody.innerHTML = `<tr><td colspan="3"><div class="empty"><p>Failed to load matches.</p></div></td></tr>`;
     }
   }
 
+  // ── Helpers ──────────────────────────────────────
+
   function formatDate(iso) {
     if (!iso) return "—";
-    const d = new Date(iso + "Z"); // treat as UTC
+    const d = new Date(iso + "Z");
     return d.toLocaleDateString("en-CH", { day: "2-digit", month: "short", year: "numeric" });
   }
 
